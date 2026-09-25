@@ -1894,7 +1894,338 @@ function PredatorUI:Notify(opts)
 
     return notif
 end
+-- ═══════════════════════════════════════════════════════════════
+-- ▓▓▓ WATERMARK (FPS / Ping / Time) ▓▓▓
+-- ═══════════════════════════════════════════════════════════════
+function PredatorUI:CreateWatermark(opts)
+    opts = opts or {}
+    local name     = opts.Name or "PredatorX"
+    local iconId   = parseIcon(opts.Icon) or "rbxassetid://7733960979"
+    local showFPS  = opts.ShowFPS ~= false
+    local showPing = opts.ShowPing ~= false
+    local showTime = opts.ShowTime ~= false
+    local position = opts.Position or UDim2.new(0.5, -180, 0, 20)
 
+    local wm = {}
+
+    -- // Container
+    wm.Frame = create("Frame", {
+        Name = "Watermark",
+        Size = UDim2.new(0, 360, 0, 40),
+        Position = position,
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.88,
+        BorderSizePixel = 0,
+        Parent = self.Gui,
+    })
+    corner(wm.Frame, 12)
+    stroke(wm.Frame, Theme.Border, 1, 0.7)
+
+    create("UIListLayout", {
+        Padding = UDim.new(0, 14),
+        FillDirection = Enum.FillDirection.Horizontal,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        Parent = wm.Frame,
+    })
+
+    -- // ── Brand ──
+    local brand = create("Frame", {
+        Size = UDim2.new(0, 110, 1, 0),
+        BackgroundTransparency = 1,
+        Parent = wm.Frame,
+    })
+
+    -- 👑 Crown Icon
+    create("ImageLabel", {
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new(0, 10, 0.5, -10),
+        BackgroundTransparency = 1,
+        Image = iconId,
+        ImageColor3 = Theme.Gold,
+        Parent = brand,
+    })
+
+    create("TextLabel", {
+        Size = UDim2.new(1, -40, 1, 0),
+        Position = UDim2.new(0, 34, 0, 0),
+        BackgroundTransparency = 1,
+        Text = name,
+        TextColor3 = Theme.Text,
+        Font = FontBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = brand,
+    })
+
+    -- // ── Divider ──
+    create("Frame", {
+        Size = UDim2.new(0, 1, 0.5, 0),
+        Position = UDim2.new(0, 0, 0.25, 0),
+        BackgroundColor3 = Theme.BorderDim,
+        BackgroundTransparency = 0.6,
+        BorderSizePixel = 0,
+        Parent = brand,
+    })
+
+    -- // ── FPS ──
+    if showFPS then
+        local fpsBox = create("Frame", {
+            Size = UDim2.new(0, 60, 1, 0),
+            BackgroundTransparency = 1,
+            Parent = wm.Frame,
+        })
+
+        create("TextLabel", {
+            Size = UDim2.new(0, 30, 1, 0),
+            BackgroundTransparency = 1,
+            Text = "FPS",
+            TextColor3 = Theme.TextFaint,
+            Font = FontBold,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = fpsBox,
+        })
+
+        wm.FPSLabel = create("TextLabel", {
+            Size = UDim2.new(0, 30, 1, 0),
+            Position = UDim2.new(0, 30, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "60",
+            TextColor3 = Theme.Success,
+            Font = FontBold,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = fpsBox,
+        })
+    end
+
+    -- // ── Ping ──
+    if showPing then
+        local pingBox = create("Frame", {
+            Size = UDim2.new(0, 70, 1, 0),
+            BackgroundTransparency = 1,
+            Parent = wm.Frame,
+        })
+
+        create("TextLabel", {
+            Size = UDim2.new(0, 36, 1, 0),
+            BackgroundTransparency = 1,
+            Text = "Ping",
+            TextColor3 = Theme.TextFaint,
+            Font = FontBold,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = pingBox,
+        })
+
+        wm.PingLabel = create("TextLabel", {
+            Size = UDim2.new(0, 34, 1, 0),
+            Position = UDim2.new(0, 36, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "24ms",
+            TextColor3 = Theme.Success,
+            Font = FontBold,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = pingBox,
+        })
+    end
+
+    -- // ── Time ──
+    if showTime then
+        wm.TimeLabel = create("TextLabel", {
+            Size = UDim2.new(0, 70, 1, 0),
+            BackgroundTransparency = 1,
+            Text = "00:00:00",
+            TextColor3 = Theme.Text,
+            Font = FontBold,
+            TextSize = 12,
+            Parent = wm.Frame,
+        })
+    end
+
+    -- ═══ Logic: FPS ═══
+    if showFPS then
+        local frameCount = 0
+        local lastUpdate = tick()
+
+        local fpsConn
+        fpsConn = RunService.RenderStepped:Connect(function()
+            frameCount = frameCount + 1
+            local now = tick()
+            if now - lastUpdate >= 0.5 then
+                local fps = math.floor(frameCount / (now - lastUpdate) + 0.5)
+                wm.FPSLabel.Text = tostring(fps)
+
+                if fps >= 50 then
+                    wm.FPSLabel.TextColor3 = Theme.Success
+                elseif fps >= 30 then
+                    wm.FPSLabel.TextColor3 = Theme.Warning
+                else
+                    wm.FPSLabel.TextColor3 = Theme.Danger
+                end
+
+                frameCount = 0
+                lastUpdate = now
+            end
+        end)
+        table.insert(self.Connections, fpsConn)
+    end
+
+    -- ═══ Logic: Ping ═══
+    if showPing then
+        local pingConn
+        pingConn = RunService.Heartbeat:Connect(function()
+            task.wait() -- ให้มี delay ก่อนวัดครั้งถัดไป
+            local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000 + 0.5)
+            wm.PingLabel.Text = tostring(ping) .. "ms"
+
+            if ping < 40 then
+                wm.PingLabel.TextColor3 = Theme.Success
+            elseif ping < 80 then
+                wm.PingLabel.TextColor3 = Theme.Warning
+            else
+                wm.PingLabel.TextColor3 = Theme.Danger
+            end
+        end)
+        table.insert(self.Connections, pingConn)
+    end
+
+    -- ═══ Logic: Time ═══
+    if showTime then
+        local timeConn
+        timeConn = RunService.Heartbeat:Connect(function()
+            task.wait(1)
+            local t = os.date("*t")
+            wm.TimeLabel.Text = string.format("%02d:%02d:%02d", t.hour, t.min, t.sec)
+        end)
+        table.insert(self.Connections, timeConn)
+    end
+
+    return wm
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- ▓▓▓ FLOATING TOGGLE BUTTON (Crown + ลากได้) ▓▓▓
+-- ═══════════════════════════════════════════════════════════════
+function PredatorUI:CreateFloatingButton(opts)
+    opts = opts or {}
+    local iconId   = parseIcon(opts.Icon) or "rbxassetid://7733960979"
+    local position = opts.Position or UDim2.new(0, 20, 0, 100)
+    local size     = opts.Size or UDim2.new(0, 56, 0, 56)
+
+    local fb = {}
+
+    -- // ปุ่มหลัก
+    fb.Button = create("TextButton", {
+        Name = "PredatorUI_Toggle",
+        Size = size,
+        Position = position,
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.7,
+        Text = "",
+        AutoButtonColor = false,
+        Parent = self.Gui,
+    })
+    corner(fb.Button, 18)
+    stroke(fb.Button, Theme.Border, 1.5, 0.4)
+
+    -- // 👑 Crown Icon
+    fb.Icon = create("ImageLabel", {
+        Size = UDim2.new(0, 26, 0, 26),
+        Position = UDim2.new(0.5, -13, 0.5, -13),
+        BackgroundTransparency = 1,
+        Image = iconId,
+        ImageColor3 = Theme.Gold,
+        Parent = fb.Button,
+    })
+
+    -- // สถานะ
+    fb.Active = true
+    fb.Position = position
+
+    -- ═══ ฟังก์ชันอัปเดตสถานะ ═══
+    local function updateVisual()
+        if fb.Active then
+            tween(fb.Button, 0.2, {BackgroundTransparency = 0.05})
+            tween(fb.Button, 0.2, {BackgroundColor3 = Theme.Gold})
+            fb.Icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            tween(fb.Button, 0.2, {BackgroundTransparency = 0.7})
+            tween(fb.Button, 0.2, {BackgroundColor3 = Color3.fromRGB(255, 255, 255)})
+            fb.Icon.ImageColor3 = Theme.Gold
+        end
+    end
+
+    -- ═══ ระบบลาก (Draggable) ═══
+    local dragging = false
+    local dragStart, startPos
+    local moved = false
+
+    fb.Button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            moved = false
+            dragStart = input.Position
+            startPos = fb.Button.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+        and input.UserInputType ~= Enum.UserInputType.Touch then return end
+
+        local delta = input.Position - dragStart
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+            moved = true
+        end
+
+        fb.Button.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging and not moved then
+                -- คลิกปกติ → toggle UI
+                fb.Active = not fb.Active
+                self:Toggle()
+                updateVisual()
+            end
+            dragging = false
+        end
+    end)
+
+    -- // Hover
+    fb.Button.MouseEnter:Connect(function()
+        if not fb.Active then
+            tween(fb.Button, 0.15, {BackgroundTransparency = 0.5})
+        end
+    end)
+    fb.Button.MouseLeave:Connect(function()
+        if not fb.Active then
+            tween(fb.Button, 0.15, {BackgroundTransparency = 0.7})
+        end
+    end)
+
+    -- // ซ่อนเมื่อกด RightShift ด้วย (sync กับ Window)
+    local origToggle = self.Toggle
+    self.Toggle = function(self2)
+        origToggle(self2)
+        fb.Active = self.IsOpen
+        updateVisual()
+    end
+
+    updateVisual()
+    return fb
+end
 -- ═══════════════════════════════════════════════════════════════
 -- ▓▓▓ DESTROY / CLEANUP ▓▓▓
 -- ═══════════════════════════════════════════════════════════════
